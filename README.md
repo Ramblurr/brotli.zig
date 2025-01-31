@@ -1,2 +1,2 @@
 # brotli.zig
-brotli packaged for zig
+[brotli](https://github.com/google/brotli) packaged for zig

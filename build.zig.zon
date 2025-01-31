@@ -1,0 +1,16 @@
+.{
+    .name = "brotli.zig",
+    .version = "0.0.0",
+    .dependencies = .{
+        // upstream brotli
+        .brotli = .{
+            .url = "git+https://github.com/google/brotli?ref=master#28b11837157086d9839880f25c2d6d9ae18e19ec",
+            .hash = "122033c6b0347348fb7bdb1f2a8dc66abb274f13c5481b62f1d11cc54fe9867c2993",
+        },
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+    },
+}
