@@ -60,7 +60,10 @@ pub fn build(b: *std.Build) void {
 /// get relevant .c files to add as sources
 fn getCSources(allocator: std.mem.Allocator, cr_path: std.Build.Cache.Path, exclude: []const []const u8) [][]const u8 {
     // get a walker for cr_path directory
-    const crp_str = std.fmt.allocPrint(allocator, "{}", .{cr_path}) catch "";
+    const crp_str = std.fmt.allocPrint(allocator, "{}", .{cr_path}) catch |err| {
+        std.debug.print("Error: {}, while trying to get c root path '{}'\n", .{ err, cr_path });
+        return &[_][]const u8{};
+    };
     const cr_dir = std.fs.openDirAbsolute(crp_str, .{ .iterate = true }) catch |err| {
         std.debug.print("Error: {}, while trying to open dir '{s}'\n", .{ err, crp_str });
         return &[_][]const u8{};
