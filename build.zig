@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
 
     const lib = b.addStaticLibrary(.{
         // .linkage = .static,
-        .name = "brotli",
+        .name = "brotli_lib",
         .target = target,
         .optimize = optimize,
     });
@@ -48,7 +48,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(lib);
 
     const exe = b.addExecutable(.{
-        .name = "brotli_exe",
+        .name = "brotli",
         .target = target,
         .optimize = optimize,
     });
