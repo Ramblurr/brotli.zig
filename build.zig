@@ -48,7 +48,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(lib);
 
     const exe = b.addExecutable(.{
-        .name = "brotli",
+        .name = "brotli_exe",
         .target = target,
         .optimize = optimize,
     });
