@@ -47,14 +47,17 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(lib);
 
-    const exe = b.addExecutable(.{
-        .name = "brotli",
-        .target = target,
-        .optimize = optimize,
-    });
-    exe.addCSourceFile(.{ .file = upstream.path("c/tools/brotli.c") });
-    exe.linkLibrary(lib);
-    b.installArtifact(exe);
+    const build_exe = b.option(bool, "build-exe", "Build brotli executable from test/brotli.c (default:false)") orelse false;
+    if (build_exe) {
+        const exe = b.addExecutable(.{
+            .name = "brotli",
+            .target = target,
+            .optimize = optimize,
+        });
+        exe.addCSourceFile(.{ .file = upstream.path("c/tools/brotli.c") });
+        exe.linkLibrary(lib);
+        b.installArtifact(exe);
+    }
 }
 
 /// get relevant .c files to add as sources
