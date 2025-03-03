@@ -1,11 +1,12 @@
 .{
-    .name = "brotli.zig",
+    .name = .brotli_build,
+    .fingerprint = 0x8b6111c8db439f28,
     .version = "0.0.0",
     .dependencies = .{
         // upstream brotli
         .brotli = .{
-            .url = "git+https://github.com/google/brotli?ref=master#28b11837157086d9839880f25c2d6d9ae18e19ec",
-            .hash = "122033c6b0347348fb7bdb1f2a8dc66abb274f13c5481b62f1d11cc54fe9867c2993",
+            .url = "git+https://github.com/google/brotli?ref=master#440e03642b891968a76b6d088d70f01f06e0c349",
+            .hash = "N-V-__8AAI2b6QPVus14oqoaXFGvvUMDwBA0vE-y0XaApMDn",
         },
     },
 
