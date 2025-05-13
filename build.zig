@@ -4,8 +4,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    // Build static artifact
     const lib = b.addStaticLibrary(.{
-        // .linkage = .static,
         .name = "brotli_lib",
         .target = target,
         .optimize = optimize,
@@ -47,6 +47,22 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(lib);
 
+    // Add C api module
+    const brotli_api = b.addTranslateC(.{
+        .root_source_file = b.path("include/c.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    brotli_api.addIncludePath(upstream.path("c/include"));
+
+    _ = b.addModule("c_api", .{
+        .root_source_file = brotli_api.getOutput(),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // build tools/brotli.c
     const build_exe = b.option(bool, "build-exe", "Build brotli executable from test/brotli.c (default:false)") orelse false;
     if (build_exe) {
         const exe = b.addExecutable(.{

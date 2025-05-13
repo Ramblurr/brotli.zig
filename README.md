@@ -4,8 +4,6 @@
 
 ## Usage
 
-To build a zig wrapper around brotli:
-
 `build.zig.zon`:
 
 ```sh
@@ -15,28 +13,25 @@ zig fetch --save git+https://github.com/0x546F6D/brotli.zig
 `build.zig`:
 
 ```zig
-const brotli_c = b.dependency("brotli.zig", .{
+const brotli_mod = b.addModule("brotli", .{
+    .root_source_file = b.path("src/root.zig"),
+});
+
+const brotli_c = b.dependency("brotli_build", .{
     .target = target,
     .optimize = optimize,
 });
-const brotli_mod = b.addModule("brotli", .{
-    .root_source_file = b.path("src/brotli.zig"),
-});
+
 brotli_mod.linkLibrary(brotli_c.artifact("brotli_lib"));
+brotli_mod.addImport("brotli_c_api", brotli_c.module("c_api"));
 
 exe.root_module.addImport("brotli", brotli_mod);
 ```
 
-`brotli.zig`:
+`root.zig`:
 
 ```zig
-pub const br_c = @cImport({
-    @cInclude("brotli/decode.h");
-    @cInclude("brotli/encode.h");
-    @cInclude("brotli/port.h");
-    @cInclude("brotli/shared_dictionary.h");
-    @cInclude("brotli/types.h");
-});
+pub const c = @import("brotli_c_api");
 ```
 
 ## Example with minimal Zig Bindings
