@@ -3,11 +3,13 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const pic = b.option(bool, "pie", "Produce Position Independent Code");
 
     // Build static artifact
     const root_module = b.createModule(.{
         .target = target,
         .optimize = optimize,
+        .pic = pic,
     });
     const lib = b.addLibrary(.{
         .name = "brotli_lib",
@@ -36,9 +38,14 @@ pub fn build(b: *std.Build) void {
         return;
     }
 
+    const base_cflags = [_][]const u8{};
+    const cflags_with_pic = base_cflags ++ [_][]const u8{"-fPIC"};
+    const cflags = if (pic orelse false) &cflags_with_pic else &base_cflags;
+
     lib.addCSourceFiles(.{
         .root = c_root,
         .files = c_sources,
+        .flags = cflags,
     });
 
     switch (target.result.os.tag) {
