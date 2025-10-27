@@ -5,10 +5,13 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     // Build static artifact
-    const lib = b.addStaticLibrary(.{
-        .name = "brotli_lib",
+    const root_module = b.createModule(.{
         .target = target,
         .optimize = optimize,
+    });
+    const lib = b.addLibrary(.{
+        .name = "brotli_lib",
+        .root_module = root_module,
     });
 
     lib.linkLibC();
@@ -23,13 +26,13 @@ pub fn build(b: *std.Build) void {
 
     // get c_sources according to c_root
     const c_root = upstream.path("c");
-    const cr_path = c_root.getPath3(b, null);
     const csources_exclude = [_][]const u8{ "fuzz", "tools" };
-    const c_sources = getCSources(allocator, cr_path, &csources_exclude);
+    const c_sources = getCSources(allocator, c_root, b, &csources_exclude);
     defer allocator.free(c_sources);
 
     if (c_sources.len == 0) {
-        std.debug.print("Error: no .c source files were returned from {}\n", .{cr_path});
+        const cr_path_rel = c_root.getPath(b);
+        std.debug.print("Error: no .c source files were returned from {s}\n", .{cr_path_rel});
         return;
     }
 
@@ -58,46 +61,45 @@ pub fn build(b: *std.Build) void {
 
     _ = b.addModule("c_api", .{
         .root_source_file = brotli_api.getOutput(),
-        .target = target,
-        .optimize = optimize,
     });
 
     // build tools/brotli.c
     const build_exe = b.option(bool, "build-exe", "Build brotli executable from test/brotli.c (default:false)") orelse false;
     if (build_exe) {
-        const exe = b.addExecutable(.{
-            .name = "brotli",
+        const exe_module = b.createModule(.{
             .target = target,
             .optimize = optimize,
         });
-        exe.addCSourceFile(.{ .file = upstream.path("c/tools/brotli.c") });
+        const exe = b.addExecutable(.{
+            .name = "brotli",
+            .root_module = exe_module,
+        });
+        exe.addCSourceFile(.{ .file = upstream.path("c/tools/brotli.c"), .flags = &.{} });
         exe.linkLibrary(lib);
         b.installArtifact(exe);
     }
 }
 
 /// get relevant .c files to add as sources
-fn getCSources(allocator: std.mem.Allocator, cr_path: std.Build.Cache.Path, exclude: []const []const u8) [][]const u8 {
+fn getCSources(allocator: std.mem.Allocator, c_root: std.Build.LazyPath, src_builder: *std.Build, exclude: []const []const u8) [][]const u8 {
+    // Get the actual path from LazyPath - this resolves the dependency
+    const cr_path_rel = c_root.getPath(src_builder);
+
     // get a walker for cr_path directory
-    const crp_str = std.fmt.allocPrint(allocator, "{}", .{cr_path}) catch |err| {
-        std.debug.print("Error: {}, while trying to get c root path '{}'\n", .{ err, cr_path });
-        return &[_][]const u8{};
-    };
-    defer allocator.free(crp_str);
-    var cr_dir = std.fs.openDirAbsolute(crp_str, .{ .iterate = true }) catch |err| {
-        std.debug.print("Error: {}, while trying to open dir '{s}'\n", .{ err, crp_str });
+    var cr_dir = std.fs.cwd().openDir(cr_path_rel, .{ .iterate = true }) catch |err| {
+        std.debug.print("Error: {}, while trying to open dir '{s}'\n", .{ err, cr_path_rel });
         return &[_][]const u8{};
     };
     defer cr_dir.close();
     var walker = cr_dir.walk(allocator) catch |err| {
-        std.debug.print("Error: {}, while trying to get walker for dir '{s}'\n", .{ err, crp_str });
+        std.debug.print("Error: {}, while trying to get walker for dir '{s}'\n", .{ err, cr_path_rel });
         return &[_][]const u8{};
     };
     defer walker.deinit();
 
     // arraylist to populate with .c files path
-    var source_list = std.ArrayList([]const u8).init(allocator);
-    defer source_list.deinit();
+    var source_list: std.ArrayList([]const u8) = .{};
+    defer source_list.deinit(allocator);
 
     blk: while (walker.next() catch null) |entry| {
         switch (entry.kind) {
@@ -110,7 +112,7 @@ fn getCSources(allocator: std.mem.Allocator, cr_path: std.Build.Cache.Path, excl
                         std.debug.print("Error: {}, while trying to duplicate '{s}'\n", .{ err, entry.path });
                         continue;
                     };
-                    source_list.append(path) catch |err| {
+                    source_list.append(allocator, path) catch |err| {
                         std.debug.print("Error: {}, while trying to append '{s}' to source_list\n", .{ err, path });
                         continue;
                     };
@@ -120,7 +122,7 @@ fn getCSources(allocator: std.mem.Allocator, cr_path: std.Build.Cache.Path, excl
         }
     }
 
-    return source_list.toOwnedSlice() catch |err| {
+    return source_list.toOwnedSlice(allocator) catch |err| {
         std.debug.print("Error: {}, while converting source_list to owned slice\n", .{err});
         return &[_][]const u8{};
     };
