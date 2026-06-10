@@ -14,10 +14,10 @@ pub fn build(b: *std.Build) void {
         .root_module = root_module,
     });
 
-    lib.linkLibC();
+    lib.root_module.link_libc = true;
 
     const upstream = b.dependency("brotli", .{});
-    lib.addIncludePath(upstream.path("c/include"));
+    lib.root_module.addIncludePath(upstream.path("c/include"));
     lib.installHeadersDirectory(upstream.path("c/include/brotli"), "brotli", .{});
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -36,7 +36,7 @@ pub fn build(b: *std.Build) void {
         return;
     }
 
-    lib.addCSourceFiles(.{
+    lib.root_module.addCSourceFiles(.{
         .root = c_root,
         .files = c_sources,
     });
@@ -74,8 +74,8 @@ pub fn build(b: *std.Build) void {
             .name = "brotli",
             .root_module = exe_module,
         });
-        exe.addCSourceFile(.{ .file = upstream.path("c/tools/brotli.c"), .flags = &.{} });
-        exe.linkLibrary(lib);
+        exe.root_module.addCSourceFile(.{ .file = upstream.path("c/tools/brotli.c"), .flags = &.{} });
+        exe.root_module.linkLibrary(lib);
         b.installArtifact(exe);
     }
 }
@@ -86,11 +86,12 @@ fn getCSources(allocator: std.mem.Allocator, c_root: std.Build.LazyPath, src_bui
     const cr_path_rel = c_root.getPath(src_builder);
 
     // get a walker for cr_path directory
-    var cr_dir = std.fs.cwd().openDir(cr_path_rel, .{ .iterate = true }) catch |err| {
+    const io = src_builder.graph.io;
+    var cr_dir = std.Io.Dir.cwd().openDir(io, cr_path_rel, .{ .iterate = true }) catch |err| {
         std.debug.print("Error: {}, while trying to open dir '{s}'\n", .{ err, cr_path_rel });
         return &[_][]const u8{};
     };
-    defer cr_dir.close();
+    defer cr_dir.close(io);
     var walker = cr_dir.walk(allocator) catch |err| {
         std.debug.print("Error: {}, while trying to get walker for dir '{s}'\n", .{ err, cr_path_rel });
         return &[_][]const u8{};
@@ -98,12 +99,12 @@ fn getCSources(allocator: std.mem.Allocator, c_root: std.Build.LazyPath, src_bui
     defer walker.deinit();
 
     // arraylist to populate with .c files path
-    var source_list: std.ArrayList([]const u8) = .{};
+    var source_list: std.ArrayList([]const u8) = .empty;
     defer source_list.deinit(allocator);
 
-    blk: while (walker.next() catch null) |entry| {
+    blk: while (walker.next(io) catch null) |entry| {
         switch (entry.kind) {
-            std.fs.File.Kind.file => {
+            .file => {
                 for (exclude) |x| {
                     if (std.mem.indexOf(u8, entry.path, x) != null) continue :blk;
                 }
