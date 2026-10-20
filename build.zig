@@ -29,12 +29,11 @@ pub fn build(b: *std.Build) void {
     // get c_sources according to c_root
     const c_root = upstream.path("c");
     const csources_exclude = [_][]const u8{ "fuzz", "tools" };
-    const c_sources = getCSources(allocator, c_root, b, &csources_exclude);
+    const c_sources = getCSources(allocator, upstream.builder.root.root_dir.handle, b, &csources_exclude);
     defer allocator.free(c_sources);
 
     if (c_sources.len == 0) {
-        const cr_path_rel = c_root.getPath(b);
-        std.debug.print("Error: no .c source files were returned from {s}\n", .{cr_path_rel});
+        std.debug.print("Error: no .c source files were returned from brotli/c\n", .{});
         return;
     }
 
@@ -88,13 +87,12 @@ pub fn build(b: *std.Build) void {
 }
 
 /// get relevant .c files to add as sources
-fn getCSources(allocator: std.mem.Allocator, c_root: std.Build.LazyPath, src_builder: *std.Build, exclude: []const []const u8) [][]const u8 {
-    // Get the actual path from LazyPath - this resolves the dependency
-    const cr_path_rel = c_root.getPath(src_builder);
+fn getCSources(allocator: std.mem.Allocator, source_dir: std.Io.Dir, src_builder: *std.Build, exclude: []const []const u8) [][]const u8 {
+    const cr_path_rel = "c";
 
     // get a walker for cr_path directory
     const io = src_builder.graph.io;
-    var cr_dir = std.Io.Dir.cwd().openDir(io, cr_path_rel, .{ .iterate = true }) catch |err| {
+    var cr_dir = source_dir.openDir(io, cr_path_rel, .{ .iterate = true }) catch |err| {
         std.debug.print("Error: {}, while trying to open dir '{s}'\n", .{ err, cr_path_rel });
         return &[_][]const u8{};
     };
