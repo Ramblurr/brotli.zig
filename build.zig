@@ -113,7 +113,7 @@ fn getCSources(allocator: std.mem.Allocator, source_dir: std.Io.Dir, src_builder
                 for (exclude) |x| {
                     if (std.mem.indexOf(u8, entry.path, x) != null) continue :blk;
                 }
-                if (std.mem.indexOf(u8, entry.basename, ".c") != null) {
+                if (std.mem.endsWith(u8, entry.basename, ".c")) {
                     const path = allocator.dupe(u8, entry.path) catch |err| {
                         std.debug.print("Error: {}, while trying to duplicate '{s}'\n", .{ err, entry.path });
                         continue;
