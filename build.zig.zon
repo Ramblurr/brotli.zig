@@ -5,8 +5,8 @@
     .dependencies = .{
         // upstream brotli
         .brotli = .{
-            .url = "git+https://github.com/google/brotli?ref=master#440e03642b891968a76b6d088d70f01f06e0c349",
-            .hash = "N-V-__8AAI2b6QPVus14oqoaXFGvvUMDwBA0vE-y0XaApMDn",
+            .url = "git+https://github.com/google/brotli?ref=v1.2.1#db24a98aed38a16de78cc05ca15cdd8dc2a0d92d",
+            .hash = "N-V-__8AAJ5n8QMUF3N9loc3jLuVNcPJuWEqOVr2ZqQy_CsF",
         },
     },
 
